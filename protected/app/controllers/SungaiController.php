@@ -1,165 +1,275 @@
 <?php
-
+/*
+|--------------------------------------------------------------------------
+| Controller Sungai
+|--------------------------------------------------------------------------
+| Sesuaikan nama class dengan nama file 
+*/
 class SungaiController extends \BaseController {
 
-	/**
-	 * Display a listing of the resource.
-	 *
-	 * @return Response
-	 */
+	/*
+	|--------------------------------------------------------------------------
+	| Koleksi Filter Controller
+	|-------------------------------------------------------------------------- */
+	public function __construct() {
+
+		# Filter Auth keseluruh method. Baca 'filters.php' baris 22
+		$this->beforeFilter('auth');
+
+	}
+	/*
+	|--------------------------------------------------------------------------
+	| Halaman Index | GET | localhost/pupr/sungai/
+	|-------------------------------------------------------------------------- */
 	public function index()
 	{
-		//
-		$sungais = DB::table('sungai')
-     	->select('dasxxx.id','dasxxx.dasxxxkodedas','dasxxx.dasxxxnamadas','sungai.sungaikodesng','sungai.sungainamasng')
-	    ->join('dasxxx', 'dasxxx.dasxxxkodedas', '=', 'sungai.sungaikodedas')	  
-	    ->orderBy('dasxxx.id', 'ASC')	     
-	    ->get();
-		return View::make('sungais.index')->with('sungais',$sungais);
+
+	$daftar =DB::table('dasxxx as a')	 
+	    ->select('b.id','a.dasxxxkodedas','a.dasxxxnamadas','b.sungaikodesng','b.sungainamasng')   
+        ->Join('sungai as b', 'a.dasxxxkodedas', '=', 'b.sungaikodedas')
+        ->paginate(5);
+
+		# Tetukan Judul
+		$judul = 'Selamat Datang, ' . Auth::user()->usersxusernam;
+
+		# Tampilkan View Beranda Sungai
+		return View::make('sungai.index', compact('daftar', 'judul'));
 	}
 
-
-	/**
-	 * Show the form for creating a new resource.
-	 *
-	 * @return Response
-	 */
-	public function create()
-	{
-		//		 
-		$das= Das::all(); 
+	/*
+	|--------------------------------------------------------------------------
+	| Form Buat Sungai Baru | GET | localhost/pupr15/sungai/buat
+	|-------------------------------------------------------------------------- */
+	public function buat() {
+	
+	$daftar = DB::table('dasxxx as a')
+     	->select('a.*')
+	    ->orderBy('a.id', 'ASC')	     
+	    ->get();
 
 		//load data to dropdown
-		$das = array('' => '');
-		foreach(Das::all() as $row)
-			$das[$row->dasxxxkodedas] = $row->dasxxxnamadas;
+		$kddas = array('' => '');
+		foreach($daftar as $row)
+			$kddas[$row->dasxxxkodedas] = $row->dasxxxnamadas;
+
+		# Tentukan Judul
+		$judul = 'Tambah Data Sungai';
 		
-        return View::make('sungais.create', array(
-			'das' => $das
-		))->with('das',$das);
+		# Langsung tampilkan view
+		return View::make('sungai.tambah', compact('kddas'));
+
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Pembuatan Sungai Baru | POST | localhost/pupr15/sungai
+	|-------------------------------------------------------------------------- */
+	public function postBuat() {
 		
+		# Simpan semua inputan kedalam variabel input
+		$input = Input::all();
+
+		# Aturan Validasi dengan syarat :
+		# - Inputan  wajib diisi
+		$aturan = array(
+			'sungaikodedas'	=> 'required', 
+			'sungaikodesng'	=> 'required', 
+			'sungainamasng'	=> 'required'
+		);
+
+		# Keterangan validasi untuk setiap syarat
+		$keterangan = array(
+			'sungaikodedas.required'	=> 'Kode Das masih kosong.',
+			'sungaikodesng.required'	=> 'Kode Sungai masih kosong.',
+			'sungainamadas.required'	=> 'Nama Sungai masih kosong.'
+		);
+
+		# Koleksi semua aturan beserta keterangan kedalam variabel 'v'
+		$v = Validator::make($input, $aturan, $keterangan);
+
+		# Bila validasi gagal
+		if($v->fails())
+
+			# Kembali kehalaman dengan masing-masing pesan error
+			return Redirect::back()->withErrors($v)->withInput();
+
+		# Bila sukses, simpan data dalam database
+		Sungai::create(array(
+			'sungaikodedas' 	=> Input::get('sungaikodedas'),
+			'sungaikodesng' 	=> Input::get('sungaikodesng'),
+			'sungainamasng'		=> Input::get('sungainamasng')
+		));
+
+		# Setelah disimpan kembali kehalaman beranda dengan pesan sukses
+		return Redirect::route('beranda')->withPesan('Istilah baru berhasil ditambahkan.');
+
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Form Ubah Informasi Sungai | GET | localhost/assets/sungai/{id}/ubah
+	|-------------------------------------------------------------------------- */
+	public function ubah($id) {
+		
 
-	/**
-	 * Store a newly created resource in storage.
-	 *
-	 * @return Response
-	 */
-	public function store()
-	{
-		// // validasi parameter
-		$rules = array(
-			'sungaikodedas' => 'required',			
-			'sungaikodesng' => 'required',
-			'sungainamasng'    => 'required'
-			);
+	$daftar = DB::table('dasxxx as a')
+     	->select('a.*')
+	    ->orderBy('a.id', 'ASC')	     
+	    ->get();
 
-		// cek validasi input
-		$validator = Validator::make(Input::all(),$rules);
+		//load data to dropdown
+		$kddas = array('' => '');
+		foreach($daftar as $row)
+			$kddas[$row->dasxxxkodedas] = $row->dasxxxnamadas;
 
-		if ($validator->fails()){
-			return Redirect::to('sungais/create')->withErrors($validator);
-		} else {
-			// if valid save to database
-			$sungai = new Sungai();
-			$sungai->sungaikodedas  = Input::get('sungaikodedas');
-			$sungai->sungaikodesng  = Input::get('sungaikodesng');
-			$sungai->sungainamasng  = Input::get('sungainamasng');
-			$sungai->save();
+		# Temukan id sungai yang dimaksud
+		$sungai = Sungai::find($id);
 
-			//redirect to index
-			Session::flash('message', 'Succesfully cerated Sungai !');
-			return Redirect::to('sungais');  
-		}
+		# Tentukan judul
+		$judul = 'Ubah Informasi Sungai';
+
+		# Kirim isi variabel bersama view
+		return View::make('sungai.ubah', compact('sungai', 'kddas'));
+
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Ubah Informasi Sungai | POST | localhost/pupr15/assets/assets/sungai/{id}
+	|-------------------------------------------------------------------------- */
+	public function postUbah($id) {
+		
+		# Simpan semua inputan kedalam variabel input
+		$input = Input::all();
 
-	/**
-	 * Display the specified resource.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public function show($id)
-	{
-		//show single record
-		$sungai= Sungai::find($id);
-		//load view tamplate show.blade.php and fill variable band
-		return View::make('sungais.show')->with('sungai',$sungai);
-	}
+		# Aturan Validasi dengan syarat :
+		# - Inputan wajib diisi
+		$aturan = array(
+			'sungaikodedas'	=> 'required', 
+			'sungaikodesng'	=> 'required', 
+			'sungainamasng'	=> 'required'
+		);
+
+		# Keterangan validasi untuk setiap syarat
+		$keterangan = array(
+			'sungaikodedas.required'	=> 'Kode Das masih kosong.',
+			'sungaikodesng.required'	=> 'Kode Sungai masih kosong.',
+			'sungainamadas.required'	=> 'Nama Sungai masih kosong.'
+		);
+
+		# Koleksi semua aturan beserta keterangan kedalam variabel 'v'
+		$v = Validator::make($input, $aturan, $keterangan);
+
+		# Bila validasi gagal
+		if($v->fails())
+
+			# Kembali kehalaman sama dengan pesan error
+			return Redirect::back()->withErrors($v)->withInput();
+
+		# Temukan ID Sungai yang ingin diubah
+		$temp =  Sungai::find($id);
+
+		# Lakukan perubahan berdasarkan field
+		$temp-> sungaikodedas 	= Input::get('sungaikodedas');
+		$temp-> sungaikodesng   = Input::get('sungaikodesng');
+		$temp-> sungainamasng   = Input::get('sungainamasng');
 	
 
+		# Simpan perubahan
+		$temp->save();
 
-	/**
-	 * Show the form for editing the specified resource.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	 public function edit($id)
-	{
-		//show sungle record
-		$sungai = Sungai::find($id);
-
-		//load view tamplate edit.blade.php and fill
-		return View::make('sungais.edit')->with('sungai',$sungai);
+		# Kembali kehalaman beranda admin dengan pesan sukses
+		return Redirect::route('beranda')->withPesan('Salah satu data kamus berhasil diubah.');
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Hapus Data Sungai | DELETE | localhost/pupr15/assets/sungai/{id}/hapus
+	|-------------------------------------------------------------------------- */
+	public function hapus($id) {
+		
+		# Hapus berdasarkan id
+		$hapus = Sungai::destroy($id);
 
-	/**
-	 * Update the specified resource in storage.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public function update($id)
-	{
-		//validasi input
-		$rules = array(
-			'sungaikodedas' => 'required',			
-			'sungaikodesng' => 'required',
-			'sungainamasng'    => 'required'
-			);
+		# Kembali kehalaman index dengan pesan sukses
+		return Redirect::route('beranda')->withPesan('Data Kamus berhasil dihapus.');
 
-		$validation = Validator::make(Input::all(),$rules);
+	}
 
-		if ($validation->fails()){
-			return Redirect::to('sungais/'.$id.'/edit')->withErrors($validation) ;
-		}else {
-			//if data valid 
-			$sungai = Sungai::find($id);
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Hapus Data Sungai | DELETE | localhost/pupr15/assets/sungai/cari/sungai
+	|-------------------------------------------------------------------------- */
+	public function cari() {
 
-			$sungai->sungaikodedas  = Input::get('sungaikodedas');
-			$sungai->sungaikodesng  = Input::get('sungaikodesng');
-			$sungai->sungainamasng  = Input::get('sungainamasng');
-			$sungai->save();
+		# Ambil nilai inputan dari form
+		$keyword = Input::get('cari');
 
-			//redurect to halaman index
-			Session::flash('message','Succesfully updating Sungai !');
-			
-			return Redirect::to('sungais');			
+		# Buatkan daftar yang sama persis dengan kata kunci
+		$cari =DB::table('dasxxx as a')	 
+	    ->select('b.id','a.dasxxxkodedas','a.dasxxxnamadas','b.sungaikodesng','b.sungainamasng')   
+        ->Join('sungai as b', 'a.dasxxxkodedas', '=', 'b.sungaikodedas')
+        ->where('sungaikodedas', $keyword)->orWhere('sungaikodesng', $keyword)->orWhere('sungainamasng', $keyword)->get();
+
+		//$cari = Sungai::where('sungaikodedas', $keyword)->orWhere('sungaikodesng', $keyword)->orWhere('sungainamasng', $keyword)->get();
+
+        $daftar =DB::table('dasxxx as a')	 
+	    ->select('b.id','a.dasxxxkodedas','a.dasxxxnamadas','b.sungaikodesng','b.sungainamasng')   
+        ->Join('sungai as b', 'a.dasxxxkodedas', '=', 'b.sungaikodedas')
+        ->where('sungaikodedas', 'LIKE', "%$keyword%")->orWhere('sungaikodesng', 'LIKE', "%$keyword%")->orWhere('sungainamasng', 'LIKE', "%$keyword%")->get();
+		
+		# Buatkan daftar yang mendekati dengan kata kunci yang dicari
+		#$daftar = Sungai::where('sungaikodedas', 'LIKE', "%$keyword%")->orWhere('sungaikodesng', 'LIKE', "%$keyword%")->orWhere('sungainamasng', 'LIKE', "%$keyword%")->get();
+
+		# Buat judul pencarian
+		$judul = 'Hasil Pencarian "'. $keyword . '"';
+
+		# Tampilkan halaman pencarian
+		return View::make('sungai.cari', compact('judul', 'daftar', 'cari'));
+
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Halaman Index Sorting Daftar | GET | localhost/assets/
+	|-------------------------------------------------------------------------- */
+	public function urut($jenis) {
+
+		# Jika jenis yang diterima adalah sungaikodedas
+		if($jenis === 'sungaikodedas') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat banjar
+			$daftar = Sungai::orderBy('sungaikodedas', 'ASC')->paginate(5);
+
+		# Jika jenis yang diterima indonesia
+		} elseif($jenis === 'sungaikodesng') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat indonesia
+			$daftar = Sungai::orderBy('sungaikodesng', 'ASC')->paginate(5);
+
+		# Jika jenis yang diterima indonesia
+		} elseif($jenis === 'sungainamasng') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat indonesia
+			$daftar = Sungai::orderBy('sungainamasng', 'ASC')->paginate(5);
+
+		# Selain kedua jenis diatas
+		} else {
+
+			# Buat judul error
+			$judul = '';
+
+			# Tampilkan halaman error
+			return Response::view('404', compact('judul'));
+
 		}
+
+		# Tentukan Judul
+		$judul = 'Selamat Datang, ' . Auth::user()->usersxusernam;
+
+		# Tampilkan View Beranda Admin
+		return View::make('sungai.index', compact('daftar', 'judul'));
+
 	}
-
-
-	/**
-	 * Remove the specified resource from storage.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public  function destroy($id)
-	{
-		// load single record
-		$sungai = Sungai::find($id);
-		// delete one record
-		$sungai->delete();
-
-		// redirect to halaman bands
-		Session::flash('message','Succesfully deleting Sungai');
-		return Redirect::to('sungais');
-	}
-
 
 }

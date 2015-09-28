@@ -13,6 +13,11 @@ class RegistrationController extends \BaseController {
 		return View::make('login');
 	}
 
+    public function home()
+	{
+		return View::make('home');
+	}
+
  
 	public function authenticate()
 	{
@@ -26,7 +31,7 @@ class RegistrationController extends \BaseController {
 		{	
 			if (Auth::check())
 			{				
-				return View::make('home')->with('user',Auth::user());						
+				return View::make('home')->with('user',Auth::user());	
 			}
 			else
 			{			
@@ -126,6 +131,25 @@ class RegistrationController extends \BaseController {
 			}
 			//return Redirect::to('login')->withInput();
 	}
+
+	public function profile()
+	{
+		
+		if (Auth::check())
+		{
+			return View::make('home')->with('user',Auth::user());
+		}
+		else
+		{
+			return Redirect::to('login')->with('login_error','You must login first.');
+		}
+	}
+	
+	public function logout()
+    {
+        Auth::logout();
+        return Redirect::to('login');
+    }
 
 	public function index()
 	{

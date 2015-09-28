@@ -31,7 +31,7 @@
         <div class="container">
 
         <hr />
-        <center><h2>Web Aplikasi Database Sungai dan Banjir</h2></center>
+        <center><h2 class="panel-primary">Web Aplikasi Database Sungai dan Banjir</h2></center>
         <hr />
         <?= '<span style="color:red">' .Session::get('login_error') . '</span>' ?>
 
@@ -51,7 +51,7 @@
                                 {{Form::label('password', 'Password') }}
                                 {{Form::password('password', array('class' => 'form-control','placeholder' => 'Password'))}}
                                 <br>
-                                {{Form::submit('Login!', array('class' => 'btn btn-lg btn-primary btn-block')) }}
+                                {{Form::submit('Login', array('class' => 'btn btn-lg btn-primary btn-block')) }}
                                 {{Form::close() }}
                                 <br>
                                 <a href="#register" class="btn btn-lg btn-primary btn-block">Register</a>
@@ -95,10 +95,10 @@
 			  {{Form::text('usersxemailxx', '', array('Input::old(usersxemailxx)','class' => 'form-control'))}}
 			  
               {{Form::label('usersxlevelxx', 'Level') }} 
-              {{Form::select('usersxlevelxx', array('0' => 'Admin', '1' => 'Operator', '2' => 'User'), Input::old('usersxlevelxx'), array('class' => 'form-control')) }}
+              {{Form::select('usersxlevelxx', array('Admin' => 'Admin', 'User' => 'User', 'Operator' => 'Operator'), Input::old('usersxlevelxx'), array('class' => 'form-control')) }}
 
 			  <br>    
-			  {{Form::submit('Register!', array('class' => 'btn btn-lg btn-primary btn-block')) }} 
+			  {{Form::submit('Register', array('class' => 'btn btn-lg btn-primary btn-block')) }} 
 			 {{ Form::close() }} 
 
 			 <br> <br> <br> <br> <br> <br>  <br> <br> <br> <br>

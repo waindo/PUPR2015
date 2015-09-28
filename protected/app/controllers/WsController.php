@@ -1,221 +1,359 @@
 <?php
-
+/*
+|--------------------------------------------------------------------------
+| Controller Sungai
+|--------------------------------------------------------------------------
+| Sesuaikan nama class dengan nama file 
+*/
 class WsController extends \BaseController {
 
-	/**
-	 * Display a listing of the resource.
-	 *
-	 * @return Response
-	 */
+	/*
+	|--------------------------------------------------------------------------
+	| Koleksi Filter Controller
+	|-------------------------------------------------------------------------- */
+	public function __construct() {
+
+		# Filter Auth keseluruh method. Baca 'filters.php' baris 22
+		$this->beforeFilter('auth');
+
+	}
+	/*
+	|--------------------------------------------------------------------------
+	| Halaman Index | GET | localhost/pupr/sungai/
+	|-------------------------------------------------------------------------- */
 	public function index()
 	{
-		//
-		$ws= DB::table('dasxxx as d')
-		->select('w.id','w.wilsngkodewsx', 'w.wilsngnamawsx', 'w.wilsngkategri', 'd.dasxxxnamadas', 's.sungainamasng')
+		
+	  $daftar= DB::table('dasxxx as d')
+		->select('w.id','w.wilsngkodewsx', 'w.wilsngnamawsx', 'w.wilsngpulauxx' ,'w.wilsngkategri', 'd.dasxxxnamadas', 's.sungainamasng')
 		->leftjoin ('wilsng as w', 'w.wilsngkodewsx','=','d.dasxxxkodewsx')
 		->join ('sungai as s', 's.sungaikodedas','=','d.dasxxxkodedas')
-		->orderBy('w.id', 'ASC')	     
-	    ->get();
+		->orderBy('w.id', 'ASC')						     
+	    ->paginate(5);
+	    
+	    //DB::raw('count(*) as user_count, status')
+	    $jml= DB::table('dasxxx as d')
+		->select(DB::raw('count(*) as jmlcount','w.wilsngkodewsx', 'w.wilsngnamawsx', 'w.wilsngpulauxx' , 'w.wilsngkategri', 'd.dasxxxnamadas', 's.sungainamasng'))
+		->leftjoin ('wilsng as w', 'w.wilsngkodewsx','=','d.dasxxxkodewsx')
+		->join ('sungai as s', 's.sungaikodedas','=','d.dasxxxkodedas')
+		->groupBy('w.wilsngkodewsx', 'w.wilsngnamawsx','w.wilsngkategri','d.dasxxxnamadas','s.sungainamasng')					     
+	    ->first();
 
-		return View::make('ws.index')->with('ws',$ws);
+		# Tetukan Judul
+		$judul = 'Selamat Datang, ' . Auth::user()->usersxusernam;
+	    //return dd($jml);
+		# Tampilkan View Beranda Sungai
+		return View::make('ws.index', compact('daftar', 'jml','judul'));
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Form Buat Sungai Baru | GET | localhost/pupr15/sungai/buat
+	|-------------------------------------------------------------------------- */
+	public function buat() {
 
-	/**
-	 * Show the form for creating a new resource.
-	 *
-	 * @return Response
-	 */
-	public function create()
-	{
-		//load All data detail ws
-		//$wsdtl= Wsdtl::all(); 
-		$wsdtl = DB::table('provxx')
-     	->select('wlsdtl.id','provxx.provxxnamprov')
-	    ->join('wlsdtl', 'provxx.provxxkodprov', '=', 'wlsdtl.wlsdtlkodprov')	  
-	    ->orderBy('wlsdtl.id', 'ASC')	     
+	//Pulau
+	$pul = DB::table('codesx as a')
+     	->select('a.codesxdesc1xx')
+	    ->where('a.codesxstatusx', '=', 1)	
+	    ->where('a.codesxheadxxx', '=', 5)  
+	    ->orderBy('a.id', 'ASC')	     
 	    ->get();
 
 		//load data to dropdown
-		$propinsi = array('' => '');
-		foreach(Propinsi::all() as $row)
-			$propinsi[$row->provxxkodprov] = $row->provxxnamprov;
+		$pulau = array('' => '');
+		foreach($pul as $row)
+			$pulau[$row->codesxdesc1xx] = $row->codesxdesc1xx;
+
+	//Kategori
+  	$daftar = DB::table('codesx as a')
+     	->select('a.codesxdesc1xx')
+	    ->where('a.codesxstatusx', '=', 1)	
+	    ->where('a.codesxheadxxx', '=', 6)  
+	    ->orderBy('a.id', 'ASC')	     
+	    ->get();
+
+		//load data to dropdown
+		$kategori = array('' => '');
+		foreach($daftar as $row)
+			$kategori[$row->codesxdesc1xx] = $row->codesxdesc1xx;
+
+		//Provinsi
+  	$prov = DB::table('codesx as a')
+     	->select('a.codesxdesc1xx')
+	    ->where('a.codesxstatusx', '=', 1)	
+	    ->where('a.codesxheadxxx', '=', 4)  
+	    ->orderBy('a.id', 'ASC')	     
+	    ->get();
+
+		//load data to dropdown
+		$provinsi = array('' => '');
+		foreach($prov as $row)
+			$provinsi[$row->codesxdesc1xx] = $row->codesxdesc1xx;
+	
+    // Tampil Data Provinsi
+	$prov = DB::table('wlsdtl as a')
+     	->select('a.*')
+	    ->orderBy('a.id', 'ASC')	     
+	    ->get();
+
+        return View::make('ws.tambah', array(
+			'kategori' => $kategori, 'pulau' => $pulau,  'provinsi' => $provinsi, 'prov' => $prov
+		));
+
+	}
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Pembuatan ws Baru | POST | localhost/pupr15/ws
+	|-------------------------------------------------------------------------- */
+	public function postBuat() {
 		
-        return View::make('ws.create', array(
-			'propinsi' => $propinsi
-		))->with('wsdtl',$wsdtl);
+		# Simpan semua inputan kedalam variabel input
+		$input = Input::all();
+
+		# Aturan Validasi dengan syarat :
+		# - Inputan  wajib diisi
+		$aturan = array(
+			'wilsngkodewsx'	=> 'required', 
+			'wilsngpulauxx'	=> 'required', 
+			'wilsngnamawsx'	=> 'required',
+			'wilsngkategri'	=> 'required'
+		);
+
+		# Keterangan validasi untuk setiap syarat
+		$keterangan = array(
+			'wilsngkodewsx.required'	=> 'Kode Ws masih kosong.',
+			'wilsngpulauxx.required'	=> 'Pulau masih kosong.',
+			'wilsngnamawsx.required'	=> 'Nama Ws masih kosong.',
+			'wilsngkategri.required'	=> 'Lintas masih kosong.'
+		);
+
+		# Koleksi semua aturan beserta keterangan kedalam variabel 'v'
+		$v = Validator::make($input, $aturan, $keterangan);
+
+		# Bila validasi gagal
+		if($v->fails())
+
+			# Kembali kehalaman dengan masing-masing pesan error
+			return Redirect::back()->withErrors($v)->withInput();
+
+		# Bila sukses, simpan data dalam database
+		Ws::create(array(
+			'wilsngkodewsx' 	=> Input::get('wilsngkodewsx'),
+			'wilsngpulauxx' 	=> Input::get('wilsngpulauxx'),
+			'wilsngnamawsx'		=> Input::get('wilsngnamawsx'),
+			'wilsngkategri'		=> Input::get('wilsngkategri')
+		));
+
+		# Setelah disimpan kembali kehalaman beranda dengan pesan sukses
+		return Redirect::route('berandaws')->withPesan('Istilah baru berhasil ditambahkan.');
+
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Pembuatan Provinsi Baru | POST | localhost/pupr15/ws
+	|-------------------------------------------------------------------------- */
+	public function postBuatProv() {
+		
+		// # Simpan semua inputan kedalam variabel input
+		 $input = Input::all();
 
-    public function tambahPropinsi()
-	{
-		// // validasi parameter
-	$rules =array(			
-			'wlsdtlkodewsx'    => 'required',
-			'wlsdtlkodprov'    => 'required'			
-			);
+		// # Aturan Validasi dengan syarat :
+		// # - Inputan  wajib diisi
+		$aturan = array(
+			'wlsdtlkodewsx'	=> 'required',
+			'wlsdtlkodprov'	=> 'required'
+		);
 
-		// // cek validasi input
-		 $validator = Validator::make(Input::all(),$rules);
+		// # Keterangan validasi untuk setiap syarat
+		$keterangan = array(
+			'wlsdtlkodewsx.required'	=> 'Kode WS masih kosong.',
+			'wlsdtlkodprov.required'	=> 'Provinsi masih kosong.'
+		);
 
-		if ($validator->fails()){
-			return Redirect::to('ws/create')->withErrors($validator);
-		} else {
-			// if valid save to database
-			$wsdtl = new Wsdtl();
-			$wsdtl->wlsdtlkodewsx  = Input::get('wlsdtlkodewsx');
-			$wsdtl->wlsdtlkodprov  = Input::get('wlsdtlkodprov');
-			$wsdtl->wlsdtlseqxxxx  = Input::get('wlsdtlkodprov');
-			$wsdtl->save();
+		// # Koleksi semua aturan beserta keterangan kedalam variabel 'v'
+		 $v = Validator::make($input, $aturan, $keterangan);
 
-			//redirect to index
-			//Session::flash('message', 'Succesfully cerated Ws !');
-			return Redirect::to('ws/create');  
-		}
+		// # Bila validasi gagal
+		if($v->fails())
+
+			# Kembali kehalaman dengan masing-masing pesan error
+			return Redirect::back()->withErrors($v)->withInput();
+		
+		// sukses, simpan data dalam database
+
+		$seq = DB::table('wlsdtl')->count()+1;
+
+		Wsdtl::create(array(
+			'wlsdtlkodewsx' 	=> Input::get('wlsdtlkodewsx'),
+			'wlsdtlkodprov' 	=> Input::get('wlsdtlkodprov'),
+			'wlsdtlseqxxxx'		=> $seq
+		));
+
+		# Setelah disimpan kembali kehalaman beranda dengan pesan sukses
+		return Redirect::back();		
+
 	}
 
-	/**
-	 * Store a newly created resource in storage.
-	 *
-	 * @return Response
-	 */
-	public function store()
-	{
-		// // validasi parameter
-		// $rules =array(
-		// 	'kodedas' => 'required',			
-		// 	'kodesungai' => 'required',
-		// 	'namasungai'    => 'required'			
-		// 	);
+	/*
+	|--------------------------------------------------------------------------
+	| Form Ubah Informasi Sungai | GET | localhost/assets/sungai/{id}/ubah
+	|-------------------------------------------------------------------------- */
+	public function ubah($id) {
+		
+		# Temukan id sungai yang dimaksud
+		$sungai = Sungai::find($id);
 
-		// // cek validasi input
-		// $validator = Validator::make(Input::all(),$rules);
+		# Tentukan judul
+		$judul = 'Ubah Informasi Sungai';
 
-		// if ($validator->fails()){
-		// 	return Redirect::to('ws/create')->withErrors($validator);
-		// } else {
-		// 	// if valid save to database
-		// 	$ws = new Ws();
-		// 	$ws->sungaikodedas  = Input::get('kodedas');
-		// 	$ws->sungaikodesng  = Input::get('kodesungai');
-		// 	$ws->sungainamasng  = Input::get('namasungai');
-		// 	$ws->save();
+		# Kirim isi variabel bersama view
+		return View::make('sungai.ubah', compact('sungai', 'judul'));
 
-		// 	//redirect to index
-		// 	Session::flash('message', 'Succesfully cerated Ws !');
-		// 	return Redirect::to('ws');  
-		// }
-
-		//Tambah Propinsi
-		// $rules =array(			
-		// 	'wlsdtlkodewsx'    => 'required',
-		// 	'wlsdtlkodprov'    => 'required'			
-		// 	);
-
-		// // // cek validasi input
-		//  $validator = Validator::make(Input::all(),$rules);
-
-		// if ($validator->fails()){
-		// 	return Redirect::to('ws/create')->withErrors($validator);
-		// } else {
-		// 	// if valid save to database
-		// 	$wsdtl = new Wsdtl();
-		// 	$wsdtl->wlsdtlkodewsx  = Input::get('wlsdtlkodewsx');
-		// 	$wsdtl->wlsdtlkodprov  = Input::get('wlsdtlkodprov');
-		// 	$wsdtl->wlsdtlseqxxxx  = Input::get('wlsdtlkodprov');
-		// 	$wsdtl->save();
-
-		// 	//redirect to index
-		// 	//Session::flash('message', 'Succesfully cerated Ws !');
-		// 	return Redirect::to('ws/create');  
-		// }
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Ubah Informasi Sungai | POST | localhost/pupr15/assets/assets/sungai/{id}
+	|-------------------------------------------------------------------------- */
+	public function postUbah($id) {
+		
+		# Simpan semua inputan kedalam variabel input
+		$input = Input::all();
 
-	/**
-	 * Display the specified resource.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public function show($id)
-	{
-		//show single record
-		$ws= Ws::find($id);
-		//load view tamplate show.blade.php and fill variable band
-		return View::make('ws.show')->with('ws',$ws);
-	}
+		# Aturan Validasi dengan syarat :
+		# - Inputan wajib diisi
+		$aturan = array(
+			'sungaikodedas'	=> 'required', 
+			'sungaikodesng'	=> 'required', 
+			'sungainamasng'	=> 'required'
+		);
+
+		# Keterangan validasi untuk setiap syarat
+		$keterangan = array(
+			'sungaikodedas.required'	=> 'Kode Das masih kosong.',
+			'sungaikodesng.required'	=> 'Kode Sungai masih kosong.',
+			'sungainamadas.required'	=> 'Nama Sungai masih kosong.'
+		);
+
+		# Koleksi semua aturan beserta keterangan kedalam variabel 'v'
+		$v = Validator::make($input, $aturan, $keterangan);
+
+		# Bila validasi gagal
+		if($v->fails())
+
+			# Kembali kehalaman sama dengan pesan error
+			return Redirect::back()->withErrors($v)->withInput();
+
+		# Temukan ID Sungai yang ingin diubah
+		$temp =  Sungai::find($id);
+
+		# Lakukan perubahan berdasarkan field
+		$temp-> sungaikodedas 	= Input::get('sungaikodedas');
+		$temp-> sungaikodesng   = Input::get('sungaikodesng');
+		$temp-> sungainamasng   = Input::get('sungainamasng');
 	
 
+		# Simpan perubahan
+		$temp->save();
 
-	/**
-	 * Show the form for editing the specified resource.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	 public function edit($id)
-	{
-		//show sungle record
-		$ws = Ws::find($id);
-
-		//load view tamplate edit.blade.php and fill
-		return View::make('ws.edit')->with('ws',$ws);
+		# Kembali kehalaman beranda admin dengan pesan sukses
+		return Redirect::route('beranda')->withPesan('Salah satu data kamus berhasil diubah.');
 	}
 
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Hapus Data Sungai | DELETE | localhost/pupr15/assets/sungai/{id}/hapus
+	|-------------------------------------------------------------------------- */
+	public function hapus($id) {
+		
+		# Hapus berdasarkan id
+		$hapus = Sungai::destroy($id);
 
-	/**
-	 * Update the specified resource in storage.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public function update($id)
-	{
-		//validasi input
-		$rules = array(
-			'kodedas' => 'required',			
-			'kodesungai' => 'required',
-			'namasungai'    => 'required'
-			);
+		# Kembali kehalaman index dengan pesan sukses
+		return Redirect::route('beranda')->withPesan('Data Kamus berhasil dihapus.');
 
-		$validation = Validator::make(Input::all(),$rules);
+	}
 
-		if ($validation->fails()){
-			return Redirect::to('ws/'.$id.'/edit')->withErrors($validation) ;
-		}else {
-			//if data valid 
-			$ws = Ws::find($id);
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Hapus Data Sungai | DELETE | localhost/pupr15/assets/sungai/{id}/hapus
+	|-------------------------------------------------------------------------- */
+	public function hapusProv($id) {
+		
+		# Hapus berdasarkan id
+		$hapus = Wsdtl::destroy($id);
 
-			$ws->sungaikodedas  = Input::get('kodedas');
-			$ws->sungaikodesng  = Input::get('kodesungai');
-			$ws->sungainamasng  = Input::get('namasungai');
-			$ws->save();
+		# Kembali kehalaman index dengan pesan sukses
+		return Redirect::route('buatws')->withPesan('Data Kamus berhasil dihapus.');
 
-			//redurect to halaman index
-			Session::flash('message','Succesfully updating Ws !');
-			
-			return Redirect::to('ws');			
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Proses Hapus Data Sungai | DELETE | localhost/pupr15/assets/sungai/cari/sungai
+	|-------------------------------------------------------------------------- */
+	public function cari() {
+
+		# Ambil nilai inputan dari form
+		$keyword = Input::get('cari');
+
+		# Buatkan daftar yang sama persis dengan kata kunci
+		$cari = Sungai::where('sungaikodedas', $keyword)->orWhere('sungaikodesng', $keyword)->orWhere('sungainamasng', $keyword)->get();
+
+		# Buatkan daftar yang mendekati dengan kata kunci yang dicari
+		$daftar = Sungai::where('sungaikodedas', 'LIKE', "%$keyword%")->orWhere('sungaikodesng', 'LIKE', "%$keyword%")->orWhere('sungainamasng', 'LIKE', "%$keyword%")->get();
+
+		# Buat judul pencarian
+		$judul = 'Hasil Pencarian "'. $keyword . '"';
+
+		# Tampilkan halaman pencarian
+		return View::make('sungai.cari', compact('judul', 'daftar', 'cari'));
+
+	}
+
+	/*
+	|--------------------------------------------------------------------------
+	| Halaman Index Sorting Daftar | GET | localhost/assets/
+	|-------------------------------------------------------------------------- */
+	public function urut($jenis) {
+
+		# Jika jenis yang diterima adalah sungaikodedas
+		if($jenis === 'sungaikodedas') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat banjar
+			$daftar = Sungai::orderBy('sungaikodedas', 'ASC')->paginate(5);
+
+		# Jika jenis yang diterima indonesia
+		} elseif($jenis === 'sungaikodesng') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat indonesia
+			$daftar = Sungai::orderBy('sungaikodesng', 'ASC')->paginate(5);
+
+		# Jika jenis yang diterima indonesia
+		} elseif($jenis === 'sungainamasng') {
+
+			# Tarik semua data kamus dan urutkan sesuai abjat indonesia
+			$daftar = Sungai::orderBy('sungainamasng', 'ASC')->paginate(5);
+
+		# Selain kedua jenis diatas
+		} else {
+
+			# Buat judul error
+			$judul = '';
+
+			# Tampilkan halaman error
+			return Response::view('404', compact('judul'));
+
 		}
-	}
 
+		# Tentukan Judul
+		$judul = 'Selamat Datang, ' . Auth::user()->usersxusernam;
 
-	/**
-	 * Remove the specified resource from storage.
-	 *
-	 * @param  int  $id
-	 * @return Response
-	 */
-	public  function destroy($id)
-	{
-		// load single record
-		$ws = Ws::find($id);
-		// delete one record
-		$ws->delete();
+		# Tampilkan View Beranda Admin
+		return View::make('sungai.index', compact('daftar', 'judul'));
 
-		// redirect to halaman bands
-		Session::flash('message','Succesfully deleting Ws');
-		return Redirect::to('ws.create');
 	}
 
 

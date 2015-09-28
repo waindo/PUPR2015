@@ -9,10 +9,27 @@ class WilayahSungaiController extends \BaseController {
 	 */
 	public function index()
 	{
-		//
-		$wilayahsungai= Sungai::all();
+		 $daftar= DB::table('dasxxx as d')
+		->select('w.id','w.wilsngkodewsx', 'w.wilsngnamawsx', 'w.wilsngpulauxx' ,'w.wilsngkategri', 'd.dasxxxnamadas', 's.sungainamasng')
+		->leftjoin ('wilsng as w', 'w.wilsngkodewsx','=','d.dasxxxkodewsx')
+		->join ('sungai as s', 's.sungaikodedas','=','d.dasxxxkodedas')
+		->orderBy('w.id', 'ASC')						     
+	    ->paginate(5);
+	    
+ //DB::raw('count(*) as user_count, status')
+	    $jml= DB::table('dasxxx as d')
+		->select(DB::raw('count(*) as jmlcount','w.wilsngkodewsx', 'w.wilsngnamawsx', 'w.wilsngpulauxx' , 'w.wilsngkategri', 'd.dasxxxnamadas', 's.sungainamasng'))
+		->leftjoin ('wilsng as w', 'w.wilsngkodewsx','=','d.dasxxxkodewsx')
+		->join ('sungai as s', 's.sungaikodedas','=','d.dasxxxkodedas')
+		->groupBy('w.wilsngkodewsx', 'w.wilsngnamawsx','w.wilsngkategri','d.dasxxxnamadas','s.sungainamasng')					     
+	    ->first();
 
-		return View::make('wilayahsungai.index')->with('wilayahsungai',$wilayahsungai);
+		# Tetukan Judul
+		$judul = 'Selamat Datang, ' . Auth::user()->usersxusernam;
+	    //return dd($jml);
+		# Tampilkan View Beranda Sungai
+		return View::make('ws.index', compact('daftar', 'jml','judul'));
+ 
 	}
 
 

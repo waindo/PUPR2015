@@ -1,50 +1,48 @@
-@extends('layouts.layouthome')
- 
- 
+@extends('_layouts.layouthome')
 @section('contenthome')
 
-<h4>Tampil Data DAS (Daerah Aliran Sungai)</h4> 
-<a class="btn btn-small btn-info" href="{{ URL::to('das/create') }}">Add Data</a>
-<!-- notifikasi messages -->
-@if (Session::has('message'))
-    <div class="alert alert-info">{{ Session::get('message') }}</div>
-@endif
-<br>
-<br>
+	{{-- Bila das terdaftar --}}
+	<br>
+	@if(count($daftar))
+	<br>
+		<a href="{{ route('buatdas') }}" id="baru" class="btn btn-small btn-info">Tambah Data</a>
+		<br>
+		<br>
+		{{ Form::open(array('route' => 'cari-das', 'style' => 'padding-left:0px;padding-bottom:10px')) }}
+		<table>
+			<tr>
+				<td width="50">{{ Form::label('cari', 'Cari   ') }}</td>  
+				<td>{{ Form::text('cari', null, array('placeholder' => 'Cari disini...', 'style' => 'width:200px', 'class' => 'form-control')) }}	</td>							
+				<td><small><i>*Tekan Enter</i></small></td>
+			</tr>
+		</table>			
+	    {{ Form::close() }}	
 
-<table class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <td>Kode WS</td>            
-            <td>Nama WS</td>            
-            <td>Kode DAS</td>            
-            <td>Nama DAS</td>                            
-            <td>Actions</td>
-        </tr>
-    </thead>
-    <tbody>
-    @foreach($das as $key => $value)
-        <tr>
-            <td>{{ $value->dasxxxkodewsx }}</td>
-            <td>{{ $value->dasxxxkodewsx }}</td> 
-            <td>{{ $value->dasxxxkodedas }}</td>
-            <td>{{ $value->dasxxxnamadas }}</td>                    
- 
-            <td>
-                {{ Form::open(array('url' => 'das/' . $value->id, 'class' => 'pull-right')) }}
-                {{ Form::hidden('_method', 'DELETE') }}
-                {{ Form::submit('Delete', array('class' => 'btn btn-warning')) }}
-                {{ Form::close() }}
- 
-                <!-- show band GET /bands/{id} -->
-                <!-- <a class="btn btn-small btn-success" href="{{ URL::to('das/' . $value->id) }}">Detail</a> -->
- 
-                <!-- edit band GET /bands/{id}/edit -->
-                <a class="btn btn-small btn-info" href="{{ URL::to('das/' . $value->id . '/edit') }}">Edit</a>
- 
-            </td>
-        </tr>
-    @endforeach
-    </tbody>
-</table>
+		<table class="table table-striped table-bordered">
+			<th style="width:200px"><a href="{{ route('urut-das', 'wilsngkodewsx') }}">Kode WS</a></th>
+			<th style="width:350px"><a href="{{ route('urut-das', 'wilsngnamawsx') }}">Nama WS</a></th>
+            <th style="width:350px"><a href="{{ route('urut-das', 'dasxxxkodedas') }}">Kode Das</a></th>
+			<th style="width:350px"><a href="{{ route('urut-das', 'dasxxxnamadas') }}">Nama Das</a></th>	
+			<th style="width:350px">Aksi</th>
+				
+			@foreach($daftar as $temp)
+				<tr>
+					<td>{{ $temp->wilsngkodewsx }}</td>
+					<td>{{ $temp->wilsngnamawsx }}</td>
+                    <td>{{ $temp->dasxxxkodedas }}</td>
+					<td>{{ $temp->dasxxxnamadas }}</td>
+					<td><small>
+						{{ link_to_route('ubahdas', 'Ubah', array($temp->id), array('class' => 'btn btn-small btn-info')) }}
+						{{ link_to_route('hapusdas', 'Hapus', array($temp->id), array('class' => 'btn btn-small btn-info')) }}									
+					</small></td>					
+				</tr>
+			@endforeach
+		</table>
+		{{ $daftar->links() }}
+	{{-- Bila Das tidak ada --}}
+	@else
+	<br>
+		<p id="tengah">Maaf, Anda belum memiliki data kamus. </p>
+		<p id="tengah"><a href="{{ route('buatdas') }}" class="btn btn-small btn-info">Buat Baru</a></p>
+	@endif
 @stop

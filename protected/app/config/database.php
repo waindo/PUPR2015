@@ -65,10 +65,10 @@ return array(
 
 		'pgsql' => array(
 			'driver'   => 'pgsql',
-			'host'     => 'localhost',
+			'host'     => '127.0.0.1',
 			'database' => 'dbpupr',
-			'username' => 'pupr',
-			'password' => 'pupr',
+			'username' => 'postgres',
+			'password' => 'postgres',
 			'charset'  => 'utf8',
 			'prefix'   => '',
 			'schema'   => 'public',
